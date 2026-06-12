@@ -12,19 +12,69 @@ const PORT = 3000;
 app.use(express.json({ limit: "300mb" }));
 app.use(express.urlencoded({ limit: "300mb", extended: true }));
 
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  console.warn("Aviso: GEMINI_API_KEY não foi encontrada nas variáveis de ambiente.");
-}
+function getGeminiApiKey(): string | undefined {
+  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim() !== "") {
+    return process.env.GEMINI_API_KEY.trim();
+  }
 
-const ai = new GoogleGenAI({
-  apiKey: apiKey || "",
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
+  const keys = [
+    "Gemini API Key",
+    "Gemini_API_Key",
+    "GEMINI_API",
+    "GE",
+    "apiKey",
+    "API_KEY",
+    "gemini_api_key",
+    "gemini_key"
+  ];
+  
+  for (const k of keys) {
+    const val = process.env[k];
+    if (val && val.trim() !== "") {
+      console.log(`[Config Engine] Chave de API encontrada em process.env["${k}"]!`);
+      return val.trim();
     }
   }
-});
+
+  for (const envKey of Object.keys(process.env)) {
+    const lowerKey = envKey.toLowerCase();
+    if (lowerKey.includes("gemini") && lowerKey.includes("key")) {
+      const val = process.env[envKey];
+      if (val && val.trim() !== "") {
+        console.log(`[Config Engine] Chave correspondente encontrada em process.env["${envKey}"]!`);
+        return val.trim();
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function getGoogleGenAI(): GoogleGenAI {
+  const key = getGeminiApiKey();
+  if (key) {
+    const maskedKey = key.length > 8 ? `${key.substring(0, 4)}...${key.substring(key.length - 4)}` : "***";
+    console.log(`[Config Engine] Inicializando Gemini com a chave de API detectada: ${maskedKey}`);
+    return new GoogleGenAI({
+      apiKey: key,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
+  }
+  
+  console.warn("[Config Engine] Nenhuma chave GEMINI_API_KEY encontrada em process.env. Utilizando instância sem chave.");
+  return new GoogleGenAI({
+    apiKey: "",
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
+}
 
 const MODEL_NAME = "gemini-3.5-flash";
 
@@ -49,7 +99,8 @@ async function generateContentWithFallback(params: {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(`[Gemini Engine] Tentando gerar conteúdo com o modelo: ${model} (Tentativa ${attempt}/${maxRetries})`);
-        const response = await ai.models.generateContent({
+        const aiInstance = getGoogleGenAI();
+        const response = await aiInstance.models.generateContent({
           model: model,
           contents: params.contents,
           config: params.config,
