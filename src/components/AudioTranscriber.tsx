@@ -392,16 +392,20 @@ export function AudioTranscriber({ onTranscriptionCompleted }: AudioTranscriberP
     abortControllerRef.current = controller;
 
     try {
-      // Offline local compression for large files and recordings
+      // Offline local compression ONLY for uploaded file audios that are large (> 8MB).
+      // Microphone recordings (recordedBlob) are already highly compressed as webm/mp4 by the browser,
+      // so converting them to raw WAV would actually inflate their size 10x-50x!
       let finalBlob = targetBlob;
-      try {
-        finalBlob = await compressAudioFile(targetBlob, (msg) => {
-          setCompressionProgress(msg);
-        });
-      } catch (compressionErr) {
-        console.warn("Local compression had an issue, proceeding with original audio:", compressionErr);
-      } finally {
-        setCompressionProgress(null);
+      if (audioFile && audioFile.size > 8 * 1024 * 1024) {
+        try {
+          finalBlob = await compressAudioFile(targetBlob, (msg) => {
+            setCompressionProgress(msg);
+          });
+        } catch (compressionErr) {
+          console.warn("Local compression had an issue, proceeding with original audio:", compressionErr);
+        } finally {
+          setCompressionProgress(null);
+        }
       }
 
       if (controller.signal.aborted) {

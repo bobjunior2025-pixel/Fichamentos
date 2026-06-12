@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 
@@ -41,7 +40,6 @@ async function generateContentWithFallback(params: {
     "gemini-3.5-flash",
     "gemini-3.1-flash-lite",
     "gemini-flash-latest",
-    "gemini-2.5-flash",
     "gemini-3.1-pro-preview"
   ];
   let lastError: any = null;
@@ -97,25 +95,22 @@ async function generateContentWithFallback(params: {
           errorMsg.toLowerCase().includes("demand") || 
           errorMsg.toLowerCase().includes("overloaded") ||
           errorMsg.toLowerCase().includes("limit") ||
-          errorMsg.toLowerCase().includes("busy");
+          errorMsg.toLowerCase().includes("busy") ||
+          errorMsg.toLowerCase().includes("quota");
           
-        if (isRecoverable) {
-          if (attempt < maxRetries) {
-            // Smarter jittered exponential backoff (e.g. 1.5s -> 3s) to let server spikes clear
-            const backoffTime = attempt * 1500 + Math.floor(Math.random() * 500);
-            console.warn(`[Retry Engine] Modelo ${model} indisponível/sobrecarregado. Aguardando ${backoffTime}ms para nova tentativa...`);
-            await new Promise(resolve => setTimeout(resolve, backoffTime));
-            continue;
-          } else {
-            console.warn(`[Fallback Engine] Esgotadas tentativas de recuperação para ${model}. Transicionando para o próximo modelo de backup...`);
-            // Settle down briefly before rotating model
-            await new Promise(resolve => setTimeout(resolve, 250));
-            break; 
-          }
+        if (isRecoverable && attempt < maxRetries) {
+          // Smarter jittered exponential backoff (e.g. 1.5s -> 3s) to let server spikes clear
+          const backoffTime = attempt * 1500 + Math.floor(Math.random() * 500);
+          console.warn(`[Retry Engine] Modelo ${model} indisponível ou sobrecarregado. Aguardando ${backoffTime}ms para nova tentativa...`);
+          await new Promise(resolve => setTimeout(resolve, backoffTime));
+          continue;
+        } else {
+          // Instead of throwing immediately for random or unhandled model errors (e.g. 403 Forbidden because of missing paid key),
+          // we transition to the next backup model in the loop! Only if ALL models fail, we throw back to the client.
+          console.warn(`[Fallback Engine] Modelo ${model} falhou na tentativa final ou apresentou erro não-recuperável de forma direta. Transicionando para o próximo modelo de backup...`);
+          await new Promise(resolve => setTimeout(resolve, 250));
+          break; 
         }
-        
-        // Non-recoverable client-side constraint errors: throw immediately to avoid redundant retries
-        throw error;
       }
     }
   }
@@ -130,7 +125,20 @@ async function generateContentWithFallback(params: {
         rawMsg = parsed.error.message;
       }
     } catch (_) {}
-    cleanErrorMessage = `Erro nos servidores de IA (Serviço Temporariamente Indisponível): ${rawMsg || lastError}`;
+    
+    // Check for quota exceed or rate limits and provide highly actionable feedback
+    const isQuotaError = 
+      rawMsg.toLowerCase().includes("quota") || 
+      rawMsg.toLowerCase().includes("limit") || 
+      rawMsg.toLowerCase().includes("rate") || 
+      String(lastError).toLowerCase().includes("429") ||
+      String(lastError).toLowerCase().includes("quota");
+
+    if (isQuotaError) {
+      cleanErrorMessage = "Erro de Cota Excedida (429): O limite de uso gratuito do servidor foi atingido temporariamente. Para usar sem interrupções e garantir o perfeito funcionamento após o deploy, adicione sua própria chave de API em: Configurações do AI Studio (ícone de engrenagem no canto inferior esquerdo) > Secrets (Segredos) com o nome de variável GEMINI_API_KEY.";
+    } else {
+      cleanErrorMessage = `Erro nos servidores de Inteligência Artificial: ${rawMsg || lastError}`;
+    }
   }
   throw new Error(cleanErrorMessage);
 }
@@ -144,12 +152,18 @@ app.post("/api/audio/transcribe", async (req, res) => {
     return res.status(400).json({ error: "Dados do áudio e tipo MIME são obrigatórios." });
   }
   try {
+    // Sanitize the mimeType so Gemini accepts it cleanly (filtering out codecs descriptors like ;codecs=opus)
+    let cleanMimeType = mimeType.split(";")[0].trim();
+    if (cleanMimeType === "audio/x-m4a" || cleanMimeType === "audio/m4a") {
+      cleanMimeType = "audio/mp4";
+    }
+
     const response = await generateContentWithFallback({
       contents: [
         {
           inlineData: {
             data: base64Data,
-            mimeType: mimeType,
+            mimeType: cleanMimeType,
           },
         },
         {
@@ -235,6 +249,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // Vite or Static assets serving
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
