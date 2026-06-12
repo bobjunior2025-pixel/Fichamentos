@@ -503,16 +503,16 @@ export function AudioTranscriber({ onTranscriptionCompleted }: AudioTranscriberP
               <div className="flex items-end gap-1 h-9 px-2 animate-fade-in">
                 <div className={cn("w-1.5 bg-red-500 rounded-full h-5 transition-all", !isPaused && "animate-bounce")} style={{ animationDelay: '0.1s' }} />
                 <div className={cn("w-1.5 bg-red-400 rounded-full h-8 transition-all", !isPaused && "animate-bounce")} style={{ animationDelay: '0.3s' }} />
-                <div className={cn("w-1.5 bg-red-650 rounded-full h-6 transition-all", !isPaused && "animate-bounce")} style={{ animationDelay: '0.5s' }} />
+                <div className={cn("w-1.5 bg-red-600 rounded-full h-6 transition-all", !isPaused && "animate-bounce")} style={{ animationDelay: '0.5s' }} />
                 <div className={cn("w-1.5 bg-red-500 rounded-full h-9 transition-all", !isPaused && "animate-bounce")} style={{ animationDelay: '0.2s' }} />
                 <div className={cn("w-1.5 bg-red-400 rounded-full h-7 transition-all", !isPaused && "animate-bounce")} style={{ animationDelay: '0.4s' }} />
               </div>
               
               <div className="flex flex-col items-center">
-                <span className="text-[10px] font-extrabold text-red-650 animate-pulse mb-1">
+                <span className="text-[10px] font-extrabold text-red-600 animate-pulse mb-1">
                   {isPaused ? "GRAVAÇÃO PAUSADA" : "GRAVANDO EM TEMPO REAL"}
                 </span>
-                <span className="text-sm font-mono font-bold text-red-550 block bg-red-50 px-3 py-1 rounded-full border border-red-100">
+                <span className="text-sm font-mono font-bold text-red-600 block bg-red-50 px-3 py-1 rounded-full border border-red-100">
                   {formatTime(recordingSeconds)}
                 </span>
               </div>
@@ -552,7 +552,7 @@ export function AudioTranscriber({ onTranscriptionCompleted }: AudioTranscriberP
                 <button
                   type="button"
                   onClick={stopRecording}
-                  className="flex-1 py-2 bg-red-550 hover:bg-red-650 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-sm active:scale-95"
+                  className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-sm active:scale-95"
                   title="Parar gravação e preparar para transcrever"
                 >
                   <MicOff className="w-3.5 h-3.5" />
@@ -565,7 +565,7 @@ export function AudioTranscriber({ onTranscriptionCompleted }: AudioTranscriberP
               <button
                 onClick={startRecording}
                 disabled={isTranscribing}
-                className="w-16 h-16 bg-red-50 hover:bg-red-100/60 text-red-650 rounded-full flex items-center justify-center transition-all shadow-sm hover:scale-105 active:scale-95 disabled:opacity-50 border border-red-100"
+                className="w-16 h-16 bg-red-50 hover:bg-red-100/60 text-red-600 rounded-full flex items-center justify-center transition-all shadow-sm hover:scale-105 active:scale-95 disabled:opacity-50 border border-red-100"
                 title="Iniciar gravação de voz"
               >
                 <Mic className="w-7 h-7 text-red-500" />
@@ -680,7 +680,7 @@ export function AudioTranscriber({ onTranscriptionCompleted }: AudioTranscriberP
           <button
             type="button"
             onClick={cancelTranscription}
-            className="mt-2 px-5 py-1.5 bg-white border border-red-200 hover:border-red-300 text-red-650 hover:bg-red-50 hover:text-red-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shadow-sm active:scale-95"
+            className="mt-2 px-5 py-1.5 bg-white border border-red-200 hover:border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1 shadow-sm active:scale-95"
             title="Abortar envio e processamento"
           >
             Cancelar Transcrição

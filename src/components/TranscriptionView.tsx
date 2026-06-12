@@ -138,7 +138,7 @@ export function TranscriptionView({
 
           <button
             onClick={() => onDelete(item.id)}
-            className="p-2 text-red-500 hover:bg-red-50 hover:text-red-650 border border-transparent hover:border-red-150 rounded-lg transition-all"
+            className="p-2 text-red-500 hover:bg-red-50 hover:text-red-700 border border-transparent hover:border-red-200 rounded-lg transition-all"
             title="Excluir gravação"
           >
             <Trash2 className="w-4 h-4" />
