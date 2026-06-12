@@ -1,0 +1,10 @@
+{
+  "name": "Transcritor de Áudio IA",
+  "description": "Grave palestras, aulas ou reuniões e transcreva seu áudio com alta precisão usando inteligência artificial.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
